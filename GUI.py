@@ -1,11 +1,22 @@
 from tkinter import *
 from ListParams import _list_params_width, _list_params_profile, _list_params_diameter
+import socket
+import json
+
+PATH = '127.0.0.1'
+PORT = 5000
+
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect((PATH, PORT))
 
 frame = Tk()
-frame.geometry("640x600")
+frame.geometry("690x600")
 frame.config(bg='#F0FFF0')
 
 _selected_params = []
+
+_label_all = Label(frame, text="", font='Arial 13', background='#F0FFF0')
+_label_all.grid(column=2, row=6)
 
 def add_width():
     if _list_width.curselection():
@@ -27,6 +38,23 @@ def add_diameter():
         print(_selected_params)
     else:
         print('Choice the diameter!')
+
+def check_all_params():
+    if len(_selected_params) < 3:
+        _label_all.config(text=f'You must pick all params. You picked: {len(_selected_params)}')
+    else:
+        _label_all.config(text=f'Your params: {_selected_params}')
+
+def send_to_sever():
+    if len(_selected_params) < 3:
+        _label_all.config(text=f'You must pick all params. You picked: {len(_selected_params)}')
+    else:
+        data = {"width": _selected_params[0], "profile": _selected_params[1], "diameter": _selected_params[2]}
+        client.send(json.dumps(data).encode())
+
+        response = client.recv(1024).decode()
+        _label_res = Label(text=f"Result: {json.loads(response)}", font='Arial 13', background='#F0FFF0')
+        _label_res.grid(column=2, row=6, pady=20)
 
 
 
@@ -63,10 +91,11 @@ _list_diameters.grid( column=3, row=1, padx=10, pady=10)
 _sub_diameter = Button(text='Add diameter to list', command=add_diameter)
 _sub_diameter.grid( column=3, row=3 )
 
-# submit = Button(text=f'Find tires with your params', background='#78866B', fg='white', font='Arial 15')
-# submit.grid(column=2, row=5, pady=10)
-#
-_check_params = Button(text='Check my params', background='#8f9779', fg='white', font='Arial 15')
-_check_params.grid(column=2, row=4, pady=30)
+submit = Button(text=f'Find tires with your params', background='#78866B', fg='white', font='Arial 15', command=send_to_sever)
+submit.grid(column=2, row=5, pady=10)
+
+_check_params = Button(text='Check my params', background='#8f9779', fg='white', font='Arial 15', command=check_all_params)
+_check_params.grid(column=2, row=4, pady=10)
 
 frame.mainloop()
+client.close()
